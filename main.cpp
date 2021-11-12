@@ -20,10 +20,10 @@ typedef vector<uint> Vector1D;
 #define NEW_VECTOR3D_0 Vector3D(NUM_GNB, Vector2D(NUM_UE, Vector1D(NUM_TIME, 0)))
 
 const uint MAX_CQI_VAL = 15;
-const uint MAX_GNB_CONNECT = 64;
+const uint MAX_GNB_CONNECT = 2/*64*/;
 
 const uint NUM_GNB = 5;
-const uint NUM_UE = 100;
+const uint NUM_UE = 10/*100*/;
 const uint NUM_TIME = 100;
 
 const string cqiMatrixFilePath = "cqi_matrix.txt";
@@ -195,7 +195,7 @@ void writeMatrix(const string& path, const Vector3D& matrix)
         for (auto g = 0; g < NUM_GNB; ++g)
         {
             for (auto u = 0; u < NUM_UE; ++u)
-                fd_w << matrix[g][u][t] << " ";
+                fd_w << setw(3) << matrix[g][u][t];
             fd_w << "\n";
         }
         fd_w << "\n";
@@ -512,7 +512,7 @@ Vector3D generateConnectionMatrix(const Vector3D& cqiMatrix, const uint& algNum)
         */
     else
         connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
-    //writeMatrix("connection_matrix0.txt", connectionMatrix);
+    writeMatrix("connection_matrix0.txt", connectionMatrix);
 
     return connectionMatrix;
 }
