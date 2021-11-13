@@ -32,6 +32,12 @@ const string connectionMatrixFilePath = "connection_matrix.txt";
 
 void printVector3D(const Vector3D& matrix);
 bool isThereCQIMatrixFile();
+uint generateNTurningPositionsOfUe(const double& scalingFactor);
+Vector1D generateTurningValuesOfUe(const uint& nTurningPositions, const double& rangeFactor);
+Vector1D generateTurningPositions(const uint& nTurningPositions);
+Vector1D generateCqiVectorOfUeGnbOfTime(const Vector1D& turningValues, const Vector1D& turningPositions,
+                                        const uint& gradientFactor);
+void addNoiseToCqiVector(Vector1D& cqiVector, const double& noiseDensityFactor, const uint& noiseLengthFactor);
 Vector3D generateRandomCQIMatrix();
 void writeMatrix(const string& path, const Vector3D& matrix);
 void generateCQIMatrix();
@@ -59,55 +65,20 @@ double compQualityCalculator0(const Vector3D& cqiMatrix, const Vector3D& connect
 double compQualityCalculator1(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix);
 double getCompQuality(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix, const uint& algNum);
 
+void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum,
+             const uint& compQualityAlgNum);
+
 int main()
 {
     generateCQIMatrix();
     Vector3D cqiMatrix = getCQIMatrix();
-    Vector3D connectionMatrix;
-    double compQuality;
-    uint connectionAlgNum;
-    uint compQualityAlgNum;
 
-    //0, 1
-    connectionAlgNum = 0;
-    compQualityAlgNum = 1;
-    connectionMatrix = generateConnectionMatrix(cqiMatrix, connectionAlgNum);
-    assert(isConnectionValid(cqiMatrix, connectionMatrix));
-    compQuality = getCompQuality(cqiMatrix, connectionMatrix, compQualityAlgNum);
-    //DEBUG
-    cout << "\n--------------------------------------\n";
-    cout << "connection alg num: " << connectionAlgNum << "\n";
-    cout << "CoMP quality alg num: " << compQualityAlgNum << "\n";
-    cout << "CoMP quality: " << compQuality << "\n";
-    cout << "--------------------------------------\n";
-    Vector3D().swap(connectionMatrix);
-    //DEBUG
-
-    /*
-    //1, 0
-    connectionAlgNum = 1;
-    compQualityAlgNum = 0;
-    connectionMatrix = generateConnectionMatrix(cqiMatrix, connectionAlgNum);
-    assert(isConnectionValid(cqiMatrix, connectionMatrix));
-    compQuality = getCompQuality(cqiMatrix, connectionMatrix, compQualityAlgNum);
-    //DEBUG
-    cout << "\n--------------------------------------\n";
-    cout << "connection alg num: " << connectionAlgNum << "\n";
-    cout << "CoMP quality alg num: " << compQualityAlgNum << "\n";
-    cout << "CoMP quality: " << compQuality << "\n";
-    cout << "--------------------------------------\n";
-    Vector3D().swap(connectionMatrix);
-    //DEBUG
-     */
-    return 0;
+    runAlgs(cqiMatrix, 0, 1);
 
     Vector3D().swap(cqiMatrix);
-    Vector3D().swap(connectionMatrix);
-
     assert(cqiMatrix.capacity() == 0);
-    assert(connectionMatrix.capacity() == 0);
 
-    cout << "CoMP Quality: " << compQuality << "\n";
+    return 0;
 }
 void printVector3D(const Vector3D& matrix)
 {
@@ -132,60 +103,105 @@ bool isThereCQIMatrixFile()
     fd_r.close();
     return res;
 }
+uint generateNTurningPositionsOfUe(const double& scalingFactor)
+{
+    uint nTurningPositions = random() % uint(NUM_TIME * scalingFactor - 1);
+    return nTurningPositions;
+}
+Vector1D generateTurningValuesOfUe(const uint& nTurningPositions, const double& rangeFactor)
+{
+    Vector1D turningValues = Vector1D(nTurningPositions + 2, 0);
+    for (auto &n : turningValues)
+        n = random() % (MAX_CQI_VAL + 1);
+
+    return turningValues;
+}
+Vector1D generateTurningPositions(const uint& nTurningPositions)
+{
+    Vector1D turningPositions = Vector1D(nTurningPositions + 2, 0);
+    for (auto i = 0; i < nTurningPositions + 1; ++i)
+        turningPositions[i] = (NUM_TIME / (nTurningPositions + 1)) * i;
+    turningPositions.back() = NUM_TIME - 1;
+
+    return turningPositions;
+}
+Vector1D generateCqiVectorOfUeGnbOfTime(const Vector1D& turningValues, const Vector1D& turningPositions,
+                                        const uint& gradientFactor)
+{
+    Vector1D cqiVector = Vector1D(NUM_TIME, 0);
+
+    for (auto i = 0; i < turningPositions.size() - 1; ++i)
+    {
+        uint dist = turningPositions[i+1] - turningPositions[i];
+        uint diff;
+        if (turningValues[i] <= turningValues[i+1])
+        { //increasing
+            diff = turningValues[i+1] - turningValues[i];
+            for (auto j = 0; j < dist; ++j)
+            {
+                cqiVector[turningPositions[i] + j] = turningValues[i] + (diff * j/ dist);
+            }
+        }
+        else
+        { //decreasing
+            diff = turningValues[i] - turningValues[i+1];
+            for (auto j = 0; j < dist; ++j)
+            {
+                cqiVector[turningPositions[i] + j] = turningValues[i] - (diff * j/ dist);
+            }
+        }
+    }
+    cqiVector.back() = turningValues.back();
+
+    return cqiVector;
+}
+void addNoiseToCqiVector(Vector1D& cqiVector, const double& noiseDensityFactor, const uint& noiseLengthFactor)
+{
+    for (auto i = 0; i < NUM_TIME * noiseDensityFactor; ++i)
+    {
+        uint randomPosition = random() % NUM_TIME;
+        for (auto j = 0; j < noiseLengthFactor; ++j)
+        {
+            uint randomValue = random() % (cqiVector[randomPosition + j] + 1);
+            cqiVector[randomPosition + j] -= randomValue;
+
+            if (&(cqiVector[randomPosition + j]) == &(cqiVector.back()))
+                break;
+        }
+    }
+
+}
 Vector3D generateRandomCQIMatrix()
 {
-    Vector3D res = NEW_VECTOR3D_0;
-    uint nTurningPoints;
-    Vector1D turningVals;
-    Vector1D pos;
-    uint mildness = 10;
+    Vector3D cqiMatrix = NEW_VECTOR3D_0;
+    uint nTurningPositions;
+    Vector1D turningValues;
+    Vector1D turningPositions;
+    Vector1D cqiVector;
 
     for (auto g = 0; g < NUM_GNB; ++g)
     {
         for (auto u = 0; u < NUM_UE; ++u)
         {
-            nTurningPoints = random() % (NUM_TIME - 1);
-            nTurningPoints /= mildness;
-            turningVals = Vector1D(nTurningPoints + 2, 0);
-            for (auto &n : turningVals)
-                n = random() % (MAX_CQI_VAL + 1);
+            nTurningPositions = generateNTurningPositionsOfUe(0.1);
+            turningValues = generateTurningValuesOfUe(nTurningPositions, 1);
+            turningPositions = generateTurningPositions(nTurningPositions);
+            cqiVector = generateCqiVectorOfUeGnbOfTime(turningValues, turningPositions, 1);
+            addNoiseToCqiVector(cqiVector, 0, 1);
 
-            pos = Vector1D(nTurningPoints + 2, 0);
-            for (auto i = 0; i < nTurningPoints + 1; ++i)
-                pos[i] = (NUM_TIME / (nTurningPoints + 1)) * i;
-            pos.back() = NUM_TIME - 1;
+            for (auto t = 0; t < NUM_TIME; ++t)
+                cqiMatrix[g][u][t] = cqiVector[t];
 
-            for (auto i = 0; i < nTurningPoints + 1; ++i)
-            {
-                uint dist = pos[i+1] - pos[i];
-                uint diff;
-                if (turningVals[i] <= turningVals[i+1])
-                { //increasing
-                    diff = turningVals.at(i+1) - turningVals.at(i);
-                    for (auto j = 0; j < dist; ++j)
-                    {
-                        res[g][u][pos[i] + j] = turningVals[i] + (diff * j/ dist);
-                    }
-                }
-                else
-                { //decreasing
-                    diff = turningVals[i] - turningVals[i+1];
-                    for (auto j = 0; j < dist; ++j)
-                    {
-                        res[g][u][pos[i] + j] = turningVals[i] - (diff * j/ dist);
-                    }
-                }
-            }
-            res[g][u].back() = turningVals.back();
-
-            Vector1D().swap(turningVals);
-            Vector1D().swap(pos);
-            assert(turningVals.capacity() == 0);
-            assert(pos.capacity() == 0);
+            Vector1D().swap(turningValues);
+            Vector1D().swap(turningPositions);
+            Vector1D().swap(cqiVector);
+            assert(turningValues.capacity() == 0);
+            assert(turningPositions.capacity() == 0);
+            assert(cqiVector.capacity() == 0);
         }
     }
 
-    return res;
+    return cqiMatrix;
 }
 void writeMatrix(const string& path, const Vector3D& matrix)
 {
@@ -310,8 +326,7 @@ bool isConnectionValid(const Vector3D& cqiMatrix, const Vector3D& connectionMatr
 
         if (res == false)
         {
-            cout << "\nerror: Invalid connection detected at time " << t+1 << "\n\n";
-            break;
+            cout << "\nerror: Invalid connection detected at time " << t+1 << "\n";
         }
     }
 
@@ -589,4 +604,20 @@ double getCompQuality(const Vector3D& cqiMatrix, const Vector3D& connectionMatri
         compQuality = compQualityCalculator0(cqiMatrix, connectionMatrix);
 
     return compQuality;
+}
+
+void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum, const uint& compQualityAlgNum)
+{
+    Vector3D connectionMatrix = generateConnectionMatrix(cqiMatrix, connectionAlgNum);
+    assert(isConnectionValid(cqiMatrix, connectionMatrix));
+    double compQuality = getCompQuality(cqiMatrix, connectionMatrix, compQualityAlgNum);
+    //DEBUG
+    cout << "\n--------------------------------------\n";
+    cout << "Connection Alg Num: " << connectionAlgNum << "\n";
+    cout << "CoMP Quality Alg Num: " << compQualityAlgNum << "\n";
+    cout << "CoMP Quality: " << compQuality << "\n";
+    cout << "--------------------------------------\n";
+    Vector3D().swap(connectionMatrix);
+    assert(connectionMatrix.capacity() == 0);
+    //DEBUG
 }
