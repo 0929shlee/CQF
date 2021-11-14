@@ -21,10 +21,10 @@ typedef vector<uint> Vector1D;
 const string cqiMatrixFilePath = "cqi_matrix.txt";
 
 const uint MAX_CQI_VAL = 15;
-const uint MAX_GNB_CONNECT = 2/*64*/;
+const uint MAX_GNB_CONNECT = 20/*2*/;
 
 const uint NUM_GNB = 5;
-const uint NUM_UE = 10/*100*/;
+const uint NUM_UE = 100/*10*/;
 const uint NUM_TIME = 100;
 
 #endif //CQF_CORE_H

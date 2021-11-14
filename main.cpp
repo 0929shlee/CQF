@@ -4,7 +4,6 @@
  * CoMP Quality Function
  */
 
-#include <algorithm>
 #include "CqiMatrix.h"
 #include "ConnectionMatrix.h"
 #include "CompQuality.h"

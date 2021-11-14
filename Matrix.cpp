@@ -43,7 +43,7 @@ Vector3D Matrix::readMatrix(const string& path)
 
     return matrix;
 }
-void Matrix::printVector3D(const Vector3D& matrix)
+void Matrix::printMatrix(const Vector3D& matrix)
 {
     for (auto t = 0; t < NUM_TIME; ++t)
     {
@@ -58,6 +58,44 @@ void Matrix::printVector3D(const Vector3D& matrix)
         cout << "\n";
     }
 
+}
+void Matrix::printMatrixOfTime(const Vector3D& matrix, const uint& time)
+{
+    cout << "--------------Time: " << time+1 << "---------------\n";
+    for (auto g = 0; g < NUM_GNB; ++g)
+    {
+        for (auto u = 0; u < NUM_UE; ++u)
+        {
+            if (matrix[g][u][time] == 0)
+            {
+                cout << "  -";
+            }
+            else
+            {
+                cout << setw(3) << matrix[g][u][time];
+            }
+        }
+        cout << "\n";
+    }
+    cout << "-------------------------------------\n";
+}
+void Matrix::print2DMatrix(const Vector2D& matrix, const uint& nRow, const uint& nColumn)
+{
+    for (auto g = 0; g < nRow; ++g)
+    {
+        for (auto u = 0; u < nColumn; ++u)
+        {
+            if (matrix[g][u] == 0)
+            {
+                cout << "  -";
+            }
+            else
+            {
+                cout << setw(3) << matrix[g][u];
+            }
+        }
+        cout << "\n";
+    }
 }
 
 void Matrix::copyMatrix(const Vector3D& originalMatrix, Vector3D& duplicatedMatrix)

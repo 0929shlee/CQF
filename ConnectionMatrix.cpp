@@ -61,6 +61,19 @@ bool ConnectionMatrix::isConnectionValid(const Vector3D& cqiMatrix, const Vector
         {
             isValid = false;
             cout << "\nerror: Invalid connection detected at time " << t+1 << "\n";
+            Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+            for (auto g = 0; g < NUM_GNB; ++g)
+            {
+                for (auto u = 0; u < NUM_UE; ++u)
+                {
+                    tmpCqiMatrix[g][u] = cqiMatrix[g][u][t] * connectionMatrix[g][u][t];
+                }
+            }
+            Matrix::printMatrixOfTime(cqiMatrix, t);
+            cout << "\n";
+            Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+            Vector2D().swap(tmpCqiMatrix);
+            assert(tmpCqiMatrix.capacity() == 0);
         }
     }
 
@@ -84,12 +97,69 @@ Vector2D ConnectionMatrix::getCoordCqiTable(const Vector3D& cqiMatrix, const uin
 
     return coord_cqiTable;
 }
+void ConnectionMatrix::_wipeUes(const uint& gnbIdx, Vector2D& coord_cqiTable, Vector1D& gnbConnectionCounts,
+                             Vector1D& ueConnectionCounts)
+{
+    Vector1D ueIdx = Vector1D();
+    for (auto & j : coord_cqiTable)
+    {
+        if (j[0] == gnbIdx && j[2] != 0)
+            ueIdx.push_back(j[1]);
+    }
+    assert(ueIdx.size() == MAX_GNB_CONNECT);
+    for (auto & j : coord_cqiTable)
+    {
+        for (auto &n : ueIdx)
+        {
+            if (j[1] == n && j[0] != gnbIdx && j[2] != 0)
+            {
+                gnbConnectionCounts[j[0]] -= 1;
+                ueConnectionCounts[n] -= 1;
+                j[2] = 0;
+                break;
+            }
+        }
+    }
+    Vector1D().swap(ueIdx);
+    assert(ueIdx.capacity() == 0);
+
+    if (DEBUG)
+    {
+        cout << "wiped out\n";
+        Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+        for (auto &w : coord_cqiTable)
+        {
+            tmpCqiMatrix[w[0]][w[1]] = w[2];
+        }
+        Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+        cout << "\n";
+        Vector2D().swap(tmpCqiMatrix);
+    }
+}
+void ConnectionMatrix::_deleteCandidate(const uint& tableIdx, const uint& gnbIdx, const uint& ueIdx,
+                                        Vector2D& coord_cqiTable, Vector1D& gnbConnectionCounts,
+                                        Vector1D& ueConnectionCounts)
+{
+    auto cqi = coord_cqiTable[tableIdx][2];
+    coord_cqiTable[tableIdx][2] = 0;
+    gnbConnectionCounts[gnbIdx] -= 1;
+    ueConnectionCounts[ueIdx] -= 1;
+
+    if (DEBUG)
+    {
+        cout << gnbIdx+1 << ", " << ueIdx+1 << " disconnected: " << cqi << "\n";
+        Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+        for (auto &w : coord_cqiTable)
+        {
+            tmpCqiMatrix[w[0]][w[1]] = w[2];
+        }
+        Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+        cout << "\n";
+        Vector2D().swap(tmpCqiMatrix);
+    }
+}
 void ConnectionMatrix::deleteBadConnectionCandidates(const Vector3D& cqiMatrix, const uint& time, Vector2D& coord_cqiTable)
 {
-    if (time == 70)
-    {
-
-    }
     Vector1D gnbConnectionCounts = Vector1D(NUM_GNB, 0);
     Vector1D ueConnectionCounts = Vector1D(NUM_UE, 0);
     for (auto g = 0; g < NUM_GNB; ++g)
@@ -117,166 +187,29 @@ void ConnectionMatrix::deleteBadConnectionCandidates(const Vector3D& cqiMatrix, 
         uint cqi = coord_cqiTable[i][2];
         Vector2D tmpCqiMatrix;
 
-        //check if it is valid
         if (cqi == 0)
             continue;
-        if (ueConnectionCounts[u] == 1)
-            continue;
-        if (gnbConnectionCounts[g] < MAX_GNB_CONNECT)
-            continue;
-        if (gnbConnectionCounts[g] == MAX_GNB_CONNECT)
+        if (gnbConnectionCounts[g] > MAX_GNB_CONNECT)
         {
-            //wipe
-            Vector1D ueIdx = Vector1D();
-            for (auto & j : coord_cqiTable)
+            _deleteCandidate(i, g, u, coord_cqiTable, gnbConnectionCounts, ueConnectionCounts);
+            if (gnbConnectionCounts[g] == MAX_GNB_CONNECT)
             {
-                if (j[0] == g && j[2] != 0)
-                    ueIdx.push_back(j[1]);
+                _wipeUes(g, coord_cqiTable, gnbConnectionCounts, ueConnectionCounts);
+                i = -1;
             }
-            assert(ueIdx.size() == MAX_GNB_CONNECT);
-            for (auto & j : coord_cqiTable)
-            {
-                for (auto &n : ueIdx)
-                {
-                    if (j[1] == n && j[0] != g && j[2] != 0)
-                    {
-                        gnbConnectionCounts[j[0]] -= 1;
-                        ueConnectionCounts[n] -= 1;
-                        j[2] = 0;
-                        break;
-                    }
-                }
-            }
-            Vector1D().swap(ueIdx);
-            assert(ueIdx.capacity() == 0);
-
+        }
+        else if (gnbConnectionCounts[g] == MAX_GNB_CONNECT && ueConnectionCounts[u] > 1)
+        {
+            _wipeUes(g, coord_cqiTable, gnbConnectionCounts, ueConnectionCounts);
             i = -1;
-
-#ifdef DEBUG
-            /**/
-            //DEBUG
-            cout << "wiped out\n";
-            tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
-            for (auto &w : coord_cqiTable)
-            {
-                tmpCqiMatrix[w[0]][w[1]] = w[2];
-            }
-            for (auto g = 0; g < NUM_GNB; ++g)
-            {
-                for (auto u = 0; u < NUM_UE; ++u)
-                {
-                    if (tmpCqiMatrix[g][u] == 0)
-                    {
-                        cout << "  -";
-                    }
-                    else
-                    {
-                        cout << setw(3) << tmpCqiMatrix[g][u];
-                    }
-                }
-                cout << "\n";
-            }
-            cout << "\n";
-            Vector2D().swap(tmpCqiMatrix);
-            //DEBUG
-             /**/
-#endif
+        }
+        else if (gnbConnectionCounts[g] == MAX_GNB_CONNECT && ueConnectionCounts[u] == 1)
+        {
             continue;
         }
-
-
-        //valid
-        coord_cqiTable[i][2] = 0;
-        gnbConnectionCounts[g] -= 1;
-        ueConnectionCounts[u] -= 1;
-
-#ifdef DEBUG
-        /**/
-        //DEBUG
-        cout << g+1 << ", " << u+1 << " disconnected: " << cqi << "\n";
-        tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
-        for (auto &w : coord_cqiTable)
+        else if (gnbConnectionCounts[g] < MAX_GNB_CONNECT)
         {
-            tmpCqiMatrix[w[0]][w[1]] = w[2];
-        }
-        for (auto g = 0; g < NUM_GNB; ++g)
-        {
-            for (auto u = 0; u < NUM_UE; ++u)
-            {
-                if (tmpCqiMatrix[g][u] == 0)
-                {
-                    cout << "  -";
-                }
-                else
-                {
-                    cout << setw(3) << tmpCqiMatrix[g][u];
-                }
-            }
-            cout << "\n";
-        }
-        cout << "\n";
-        Vector2D().swap(tmpCqiMatrix);
-        //DEBUG
-        /**/
-#endif
-
-        //wipe
-        if (gnbConnectionCounts[g] == MAX_GNB_CONNECT)
-        {
-            Vector1D ueIdx = Vector1D();
-            for (auto & j : coord_cqiTable)
-            {
-                if (j[0] == g && j[2] != 0)
-                    ueIdx.push_back(j[1]);
-            }
-            assert(ueIdx.size() == MAX_GNB_CONNECT);
-            for (auto & j : coord_cqiTable)
-            {
-                for (auto &n : ueIdx)
-                {
-                    if (j[1] == n && j[0] != g && j[2] != 0)
-                    {
-                        gnbConnectionCounts[j[0]] -= 1;
-                        ueConnectionCounts[n] -= 1;
-                        j[2] = 0;
-                        break;
-                    }
-                }
-            }
-            Vector1D().swap(ueIdx);
-            assert(ueIdx.capacity() == 0);
-
-            i = -1;
-
-            /**/
-            //DEBUG
-#ifdef DEBUG
-            cout << "wiped out\n";
-            tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
-            for (auto &w : coord_cqiTable)
-            {
-                tmpCqiMatrix[w[0]][w[1]] = w[2];
-            }
-            for (auto g = 0; g < NUM_GNB; ++g)
-            {
-                for (auto u = 0; u < NUM_UE; ++u)
-                {
-                    if (tmpCqiMatrix[g][u] == 0)
-                    {
-                        cout << "  -";
-                    }
-                    else
-                    {
-                        cout << setw(3) << tmpCqiMatrix[g][u];
-                    }
-                }
-                cout << "\n";
-            }
-            cout << "\n";
-            Vector2D().swap(tmpCqiMatrix);
-            //DEBUG
-            /**/
-#endif
+            continue;
         }
     }
 
@@ -380,6 +313,73 @@ void ConnectionMatrix::connectMissedConnectionCandidates(const Vector3D& cqiMatr
     assert(gnbConnectionCounts.capacity() == 0);
     assert(ueConnectionCounts.capacity() == 0);
 }
+void ConnectionMatrix::swapConnections(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix)
+{
+    Vector1D gnbConnectionCounts = Vector1D(NUM_GNB, 0);
+    Vector1D ueConnectionCounts = Vector1D(NUM_UE, 0);
+    for (auto g = 0; g < NUM_GNB; ++g)
+    {
+        for (auto u = 0; u < NUM_UE; ++u)
+        {
+            gnbConnectionCounts[g] += connectionMatrix[g][u][time];
+            ueConnectionCounts[u] += connectionMatrix[g][u][time];
+        }
+    }
+
+    for (auto u = 0; u < NUM_UE; ++u)
+    {
+        if (ueConnectionCounts[u] == 1)
+            continue;
+        uint g;
+        for (g = 0; g < NUM_GNB; ++g)
+        {
+            if (gnbConnectionCounts[g] < MAX_GNB_CONNECT)
+                break;
+        }
+        assert(connectionMatrix[g][u][time] == 0);
+        if (cqiMatrix[g][u][time] != 0)
+        {
+            connectionMatrix[g][u][time] = 1;
+            continue;
+        }
+
+        vector<vector<int>> coord_cqiMatrix = vector<vector<int>>(); /*gnbIdxToGo, ueIdxToSwitch, cqiChanges*/
+        for (auto tmp_g = 0; tmp_g < NUM_GNB; ++tmp_g)
+        {
+            if (tmp_g == g)
+                continue;
+            for (auto tmp_u = 0; tmp_u < NUM_UE; ++tmp_u)
+            {
+                if (connectionMatrix[tmp_g][tmp_u][time] == 1)
+                {
+                    vector<int> tmpV = vector<int>{tmp_g, tmp_u,
+                                                   int(cqiMatrix[tmp_g][u][time] + cqiMatrix[g][tmp_u][time]) -
+                                                   int(cqiMatrix[tmp_g][tmp_u][time])};
+                    coord_cqiMatrix.push_back(tmpV);
+                }
+            }
+        }
+        sort(coord_cqiMatrix.begin(), coord_cqiMatrix.end(),
+             [](const vector<int> &v0, const vector<int> &v1) -> bool
+             {
+                 return v0.back() > v1.back();
+             });
+
+        uint res_g = coord_cqiMatrix.front()[0];
+        uint res_u = coord_cqiMatrix.front()[1];
+        connectionMatrix[res_g][u][time] = 1;
+        connectionMatrix[res_g][res_u][time] = 0;
+        connectionMatrix[g][res_u][time] = 1;
+
+        vector<vector<int>>().swap(coord_cqiMatrix);
+        assert(coord_cqiMatrix.capacity() == 0);
+    }
+
+    Vector1D().swap(gnbConnectionCounts);
+    Vector1D().swap(ueConnectionCounts);
+    assert(gnbConnectionCounts.capacity() == 0);
+    assert(ueConnectionCounts.capacity() == 0);
+}
 Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
 { //delete bad cqi connection and connect good cqi connection
     Vector3D connectionMatrix = NEW_VECTOR3D_0;
@@ -393,31 +393,25 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
         deleteBadConnectionCandidates(cqiMatrix, t, coord_cqiTable);
         connectGoodConnectionCandidates(cqiMatrix, t, coord_cqiTable, connectionMatrix);
         connectMissedConnectionCandidates(cqiMatrix, t, connectionMatrix);
-        //DEBUG
-        cout << "--------------Time: " << t+1 << "---------------\n";
-        Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
-        for (auto &v : coord_cqiTable)
+        swapConnections(cqiMatrix, t, connectionMatrix);
+        DEBUG = 1;
+        if (DEBUG)
         {
-            tmpCqiMatrix[v[0]][v[1]] = v[2];
-        }
-        for (auto g = 0; g < NUM_GNB; ++g)
-        {
-            for (auto u = 0; u < NUM_UE; ++u)
+            Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+            for (auto g = 0; g < NUM_GNB; ++g)
             {
-                if (tmpCqiMatrix[g][u] == 0)
+                for (auto u = 0; u < NUM_UE; ++u)
                 {
-                    cout << "  -";
-                }
-                else
-                {
-                    cout << setw(3) << tmpCqiMatrix[g][u];
+                    tmpCqiMatrix[g][u] = cqiMatrix[g][u][t] * connectionMatrix[g][u][t];
                 }
             }
+            Matrix::printMatrixOfTime(cqiMatrix, t);
             cout << "\n";
+            Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+            Vector2D().swap(tmpCqiMatrix);
+            assert(tmpCqiMatrix.capacity() == 0);
         }
-        cout << "------------------------------------\n";
-        Vector2D().swap(tmpCqiMatrix);
-        //DEBUG
+        DEBUG = 0;
 
         Vector2D().swap(coord_cqiTable);
         Vector1D().swap(gnbConnectionCounts);
