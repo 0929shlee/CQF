@@ -30,7 +30,7 @@ private:
     void connectMissedConnectionCandidates(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix);
     void swapConnections(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix);
     Vector3D connectionMatrixGenerator0(const Vector3D& cqiMatrix);
-    //Vector3D connectionMatrixGenerator1(const Vector3D& cqiMatrix);
+    bool isThereConnectionMatrixFile();
 };
 
 

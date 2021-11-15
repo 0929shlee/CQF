@@ -66,6 +66,17 @@ double CompQuality::compQualityCalculator1(const Vector3D& cqiMatrix, const Vect
 
     return res;
 }
+void CompQuality::writeCompQuality(const double& compQuality)
+{
+    ifstream fd_r(compQualityFilePath);
+    if (fd_r.is_open())
+        remove(compQualityFilePath.c_str());
+    fd_r.close();
+
+    ofstream fd_w(compQualityFilePath);
+    fd_w << compQuality << "\n";
+    fd_w.close();
+}
 double CompQuality::getCompQuality(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix, const uint& algNum)
 {
     double compQuality;
@@ -76,5 +87,6 @@ double CompQuality::getCompQuality(const Vector3D& cqiMatrix, const Vector3D& co
     else
         compQuality = compQualityCalculator0(cqiMatrix, connectionMatrix);
 
+    writeCompQuality(compQuality);
     return compQuality;
 }

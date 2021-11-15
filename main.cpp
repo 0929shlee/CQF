@@ -13,15 +13,17 @@ using namespace std;
 void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum,
              const uint& compQualityAlgNum);
 
+void testAll();
+
 int main()
 {
-    Vector3D cqiMatrix = CqiMatrix(0.1, 1, 1, 0, 1).
-            getCqiMatrix();
+    Vector3D cqiMatrix = CqiMatrix(0.1, 0, 1).getCqiMatrix();
 
     runAlgs(cqiMatrix, 0, 1);
 
     Vector3D().swap(cqiMatrix);
     assert(cqiMatrix.capacity() == 0);
+    //testAll();
 
     return 0;
 }
@@ -35,11 +37,33 @@ void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum, const uint
     double compQuality = cq.getCompQuality(cqiMatrix, connectionMatrix, compQualityAlgNum);
     //DEBUG
     cout << "\n--------------------------------------\n";
-    cout << "Connection Alg Num: " << connectionAlgNum << "\n";
-    cout << "CoMP Quality Alg Num: " << compQualityAlgNum << "\n";
     cout << "CoMP Quality: " << compQuality << "\n";
     cout << "--------------------------------------\n";
     Vector3D().swap(connectionMatrix);
     assert(connectionMatrix.capacity() == 0);
     //DEBUG
+}
+
+void testAll()
+{
+    uint nTest = 100;
+    Vector3D cqiMatrix;
+    Vector3D connectionMatrix;
+    ConnectionMatrix cm;
+    uint cnt = 0;
+    for (auto i = 0; i < nTest; ++i)
+    {
+        cout << "Running test... (" << i << " / " << nTest << ")\n";
+        cqiMatrix = CqiMatrix(0.1, 0, 1).getTmpCqiMatrix();
+        cm = ConnectionMatrix();
+        connectionMatrix = cm.generateConnectionMatrix(cqiMatrix, 0);
+        if (!cm.isConnectionValid(cqiMatrix, connectionMatrix))
+        {
+            cnt += 1;
+        }
+
+        Vector3D().swap(cqiMatrix);
+        Vector3D().swap(connectionMatrix);
+    }
+    cout << "test failed for " << cnt << " times\n";
 }

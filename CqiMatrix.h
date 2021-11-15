@@ -12,12 +12,12 @@
 class CqiMatrix
 {
 public:
-    CqiMatrix(const double& scalingFactor, const double& rangeFactor, const uint& gradientFactor,
-              const double& noiseDensityFactor, const uint& noiseLengthFactor);
+    CqiMatrix(const double& scalingFactor, const double& noiseDensityFactor, const uint& noiseLengthFactor);
     Vector3D getCqiMatrix();
+    Vector3D getTmpCqiMatrix();
 
 private:
-    double scalingFactor, rangeFactor, gradientFactor, noiseDensityFactor, noiseLengthFactor;
+    double scalingFactor, noiseDensityFactor, noiseLengthFactor;
     uint nTurningPositions = 0;
 
     bool isThereCqiMatrixFile();

@@ -19,9 +19,11 @@ typedef vector<uint> Vector1D;
 #define NEW_VECTOR3D_0 Vector3D(NUM_GNB, Vector2D(NUM_UE, Vector1D(NUM_TIME, 0)))
 
 const string cqiMatrixFilePath = "cqi_matrix.txt";
+const string connectionMatrixFilePath = "connection_matrix.txt";
+const string compQualityFilePath = "comp_quality.txt";
 
 const uint MAX_CQI_VAL = 15;
-const uint MAX_GNB_CONNECT = 20/*2*/;
+const uint MAX_GNB_CONNECT = 20/*20*/;
 
 const uint NUM_GNB = 5;
 const uint NUM_UE = 100/*10*/;

@@ -4,10 +4,9 @@
 
 #include "CqiMatrix.h"
 
-CqiMatrix::CqiMatrix(const double& scalingFactor, const double& rangeFactor, const uint& gradientFactor,
-                     const double& noiseDensityFactor, const uint& noiseLengthFactor):
-                     scalingFactor(scalingFactor), rangeFactor(rangeFactor), gradientFactor(gradientFactor),
-                     noiseDensityFactor(noiseDensityFactor), noiseLengthFactor(noiseLengthFactor)
+CqiMatrix::CqiMatrix(const double& scalingFactor, const double& noiseDensityFactor, const uint& noiseLengthFactor):
+                     scalingFactor(scalingFactor), noiseDensityFactor(noiseDensityFactor),
+                     noiseLengthFactor(noiseLengthFactor)
 {
     generateCqiMatrix();
 }
@@ -130,5 +129,9 @@ void CqiMatrix::generateCqiMatrix()
 Vector3D CqiMatrix::getCqiMatrix()
 {
     return Matrix::readMatrix(cqiMatrixFilePath);
+}
+Vector3D CqiMatrix::getTmpCqiMatrix()
+{
+    return generateRandomCqiMatrix();
 }
 

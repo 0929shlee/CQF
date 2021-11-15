@@ -18,6 +18,7 @@ private:
     double penaltyCalculator(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum, const uint& time);
     double compQualityCalculator0(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix);
     double compQualityCalculator1(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix);
+    void writeCompQuality(const double& compQuality);
 };
 
 

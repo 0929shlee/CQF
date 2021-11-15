@@ -394,7 +394,7 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
         connectGoodConnectionCandidates(cqiMatrix, t, coord_cqiTable, connectionMatrix);
         connectMissedConnectionCandidates(cqiMatrix, t, connectionMatrix);
         swapConnections(cqiMatrix, t, connectionMatrix);
-        DEBUG = 1;
+        //DEBUG = 1;
         if (DEBUG)
         {
             Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
@@ -423,6 +423,13 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
 
     return connectionMatrix;
 }
+bool ConnectionMatrix::isThereConnectionMatrixFile()
+{
+    ifstream fd_r(connectionMatrixFilePath);
+    bool res = fd_r.is_open();
+    fd_r.close();
+    return res;
+}
 Vector3D ConnectionMatrix::generateConnectionMatrix(const Vector3D& cqiMatrix, const uint& algNum)
 {
     Vector3D connectionMatrix;
@@ -434,7 +441,9 @@ Vector3D ConnectionMatrix::generateConnectionMatrix(const Vector3D& cqiMatrix, c
             */
     else
         connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
-    Matrix::writeMatrix("connection_matrix0.txt", connectionMatrix);
+    if (isThereConnectionMatrixFile())
+        remove(connectionMatrixFilePath.c_str());
+    Matrix::writeMatrix(connectionMatrixFilePath, connectionMatrix);
 
     return connectionMatrix;
 }
