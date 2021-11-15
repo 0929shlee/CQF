@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "Core.h"
 #include "Matrix.h"
+#include "CompQuality.h"
 
 class ConnectionMatrix
 {

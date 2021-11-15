@@ -17,13 +17,15 @@ void testAll();
 
 int main()
 {
+    /*
     Vector3D cqiMatrix = CqiMatrix(0.1, 0, 1).getCqiMatrix();
 
     runAlgs(cqiMatrix, 0, 1);
 
     Vector3D().swap(cqiMatrix);
     assert(cqiMatrix.capacity() == 0);
-    //testAll();
+     */
+    testAll();
 
     return 0;
 }
@@ -59,6 +61,8 @@ void testAll()
         connectionMatrix = cm.generateConnectionMatrix(cqiMatrix, 0);
         if (!cm.isConnectionValid(cqiMatrix, connectionMatrix))
         {
+            Matrix::writeMatrix(cqiMatrixFilePath, cqiMatrix);
+            assert(false);
             cnt += 1;
         }
 

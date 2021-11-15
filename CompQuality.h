@@ -12,10 +12,13 @@ class CompQuality
 public:
     CompQuality();
     double getCompQuality(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix, const uint& algNum);
+    static double reward(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum, const uint& time);
 
 private:
-    double rewardCalculator(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum, const uint& time);
-    double penaltyCalculator(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum, const uint& time);
+    static double getReward(const uint& cqi);
+    static double getPenalty(const uint& cqi);
+    static double rewardCalculator(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum, const uint& time);
+    static double penaltyCalculator(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum, const uint& time);
     double compQualityCalculator0(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix);
     double compQualityCalculator1(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix);
     void writeCompQuality(const double& compQuality);

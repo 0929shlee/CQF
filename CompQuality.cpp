@@ -4,16 +4,35 @@
 
 #include "CompQuality.h"
 
-CompQuality::CompQuality() {}
+CompQuality::CompQuality() = default;
+double CompQuality::reward(const Vector3D &cqiMatrix, const uint &gnbNum, const uint &ueNum, const uint &time)
+{
+    double reward = rewardCalculator(cqiMatrix, gnbNum, ueNum, time);
+    double penalty = penaltyCalculator(cqiMatrix, gnbNum, ueNum, time);
+    return getReward(MAX_CQI_VAL) + reward - penalty;
+}
+double CompQuality::getReward(const uint& cqi)
+{
+    return cqi;
+}
+double CompQuality::getPenalty(const uint& cqi)
+{
+    return getReward(MAX_CQI_VAL) - getReward(cqi);
+}
 double CompQuality::rewardCalculator(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum,
                         const uint& time)
 {
-    return cqiMatrix[gnbNum][ueNum][time];
+    return getReward(cqiMatrix[gnbNum][ueNum][time]);
 }
 double CompQuality::penaltyCalculator(const Vector3D& cqiMatrix, const uint& gnbNum, const uint& ueNum,
                          const uint& time)
 {
-    return 0;
+    double penalty = 0;
+    if (time > 0)
+    {
+        penalty = getPenalty(cqiMatrix[gnbNum][ueNum][time - 1]);
+    }
+    return penalty;
 }
 double CompQuality::compQualityCalculator0(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix)
 {
@@ -29,8 +48,7 @@ double CompQuality::compQualityCalculator0(const Vector3D& cqiMatrix, const Vect
             {
                 if (connectionMatrix[g][u][t] >= 1)
                 {
-                    compQualityOfTime *= (rewardCalculator(cqiMatrix, g, u, t) +
-                                          penaltyCalculator(cqiMatrix, g, u, t));
+                    compQualityOfTime *= reward(cqiMatrix, g, u, t);
                     compQualityOfTime *= depressor;
                 }
             }
@@ -53,8 +71,7 @@ double CompQuality::compQualityCalculator1(const Vector3D& cqiMatrix, const Vect
             {
                 if (connectionMatrix[g][u][t] >= 1)
                 {
-                    compQualityOfTime += (rewardCalculator(cqiMatrix, g, u, t) +
-                                          penaltyCalculator(cqiMatrix, g, u, t));
+                    compQualityOfTime += reward(cqiMatrix, g, u, t);
                 }
             }
         }

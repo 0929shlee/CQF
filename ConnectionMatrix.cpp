@@ -5,6 +5,23 @@
 #include "ConnectionMatrix.h"
 
 ConnectionMatrix::ConnectionMatrix() {}
+Vector3D ConnectionMatrix::generateConnectionMatrix(const Vector3D& cqiMatrix, const uint& algNum)
+{
+    Vector3D connectionMatrix;
+    if (algNum == 0)
+        connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
+        /*
+        else if (algNum == 1)
+            connectionMatrix = connectionMatrixGenerator1(cqiMatrix);
+            */
+    else
+        connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
+    if (isThereConnectionMatrixFile())
+        remove(connectionMatrixFilePath.c_str());
+    Matrix::writeMatrix(connectionMatrixFilePath, connectionMatrix);
+
+    return connectionMatrix;
+}
 bool ConnectionMatrix::isConnectionValid(const Vector3D& cqiMatrix, const Vector3D& connectionMatrix)
 {
     bool isValid = true;
@@ -50,13 +67,6 @@ bool ConnectionMatrix::isConnectionValid(const Vector3D& cqiMatrix, const Vector
         if (nUeZeroCqi + nUeConnected < NUM_UE)
             isValidInTime = false;
 
-        Vector1D().swap(sumOfUeCqiVector);
-        Vector1D().swap(nUeConnectedToGnbVector);
-        Vector1D().swap(nGnbConnectedToUeVector);
-        assert(sumOfUeCqiVector.capacity() == 0);
-        assert(nUeConnectedToGnbVector.capacity() == 0);
-        assert(nGnbConnectedToUeVector.capacity() == 0);
-
         if (isValidInTime == false)
         {
             isValid = false;
@@ -75,13 +85,20 @@ bool ConnectionMatrix::isConnectionValid(const Vector3D& cqiMatrix, const Vector
             Vector2D().swap(tmpCqiMatrix);
             assert(tmpCqiMatrix.capacity() == 0);
         }
+
+        Vector1D().swap(sumOfUeCqiVector);
+        Vector1D().swap(nUeConnectedToGnbVector);
+        Vector1D().swap(nGnbConnectedToUeVector);
+        assert(sumOfUeCqiVector.capacity() == 0);
+        assert(nUeConnectedToGnbVector.capacity() == 0);
+        assert(nGnbConnectedToUeVector.capacity() == 0);
     }
 
     return isValid;
 }
 Vector2D ConnectionMatrix::getCoordCqiTable(const Vector3D& cqiMatrix, const uint& time)
 {
-    Vector2D coord_cqiTable = Vector2D(NUM_GNB * NUM_UE, Vector1D(3, 0));
+    Vector2D coord_cqiTable = Vector2D(NUM_GNB * NUM_UE, Vector1D(4, 0));
     uint cnt = 0;
 
     for (auto g = 0; g < NUM_GNB; ++g)
@@ -91,6 +108,7 @@ Vector2D ConnectionMatrix::getCoordCqiTable(const Vector3D& cqiMatrix, const uin
             coord_cqiTable[cnt][0] = g;
             coord_cqiTable[cnt][1] = u;
             coord_cqiTable[cnt][2] = cqiMatrix[g][u][time];
+            coord_cqiTable[cnt][3] = uint(CompQuality::reward(cqiMatrix, g, u, time));
             cnt += 1;
         }
     }
@@ -116,6 +134,7 @@ void ConnectionMatrix::_wipeUes(const uint& gnbIdx, Vector2D& coord_cqiTable, Ve
                 gnbConnectionCounts[j[0]] -= 1;
                 ueConnectionCounts[n] -= 1;
                 j[2] = 0;
+                j[3] = 0;
                 break;
             }
         }
@@ -142,6 +161,7 @@ void ConnectionMatrix::_deleteCandidate(const uint& tableIdx, const uint& gnbIdx
 {
     auto cqi = coord_cqiTable[tableIdx][2];
     coord_cqiTable[tableIdx][2] = 0;
+    coord_cqiTable[tableIdx][3] = 0;
     gnbConnectionCounts[gnbIdx] -= 1;
     ueConnectionCounts[ueIdx] -= 1;
 
@@ -248,6 +268,22 @@ void ConnectionMatrix::connectGoodConnectionCandidates(const Vector3D& cqiMatrix
         connectionMatrix[g][u][time] = 1;
         gnbConnectionCounts[g] += 1;
         ueConnectionCounts[u] += 1;
+
+        if (DEBUG)
+        {
+            cout << g+1 << ", " << u+1 << " connected: " << cqi << "\n";
+            Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+            for (auto tmp_g = 0; tmp_g < NUM_GNB; ++tmp_g)
+            {
+                for (auto tmp_u = 0; tmp_u < NUM_UE; ++tmp_u)
+                {
+                    tmpCqiMatrix[tmp_g][tmp_u] = cqiMatrix[tmp_g][tmp_u][time] * connectionMatrix[tmp_g][tmp_u][time];
+                }
+            }
+            Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+            cout << "\n";
+            Vector2D().swap(tmpCqiMatrix);
+        }
     }
 
     Vector1D().swap(gnbConnectionCounts);
@@ -273,17 +309,18 @@ void ConnectionMatrix::connectMissedConnectionCandidates(const Vector3D& cqiMatr
         if (ueConnectionCounts[u] >= 1)
             continue;
 
-        Vector2D tmpUeVector = Vector2D(NUM_GNB, Vector1D(2, 0));
+        Vector2D tmpUeVector = Vector2D(NUM_GNB, Vector1D(3, 0));
         for (auto g = 0; g < NUM_GNB; ++g)
         {
             tmpUeVector[g][0] = g;
             tmpUeVector[g][1] = cqiMatrix[g][u][time];
+            tmpUeVector[g][2] = uint(CompQuality::reward(cqiMatrix, g, u, time));
         }
 
         sort(tmpUeVector.begin(), tmpUeVector.end(),
              [](const Vector1D &v0, const Vector1D &v1) -> bool
              {
-                 return v0[1] > v1[1];
+                 return v0.back() > v1.back();
              });
 
         for (auto &v : tmpUeVector)
@@ -303,6 +340,23 @@ void ConnectionMatrix::connectMissedConnectionCandidates(const Vector3D& cqiMatr
             connectionMatrix[g][u][time] = 1;
             gnbConnectionCounts[g] += 1;
             ueConnectionCounts[u] += 1;
+
+            if (DEBUG)
+            {
+                cout << g+1 << ", " << u+1 << " connected barely: " << cqi << "\n";
+                Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+                for (auto tmp_g = 0; tmp_g < NUM_GNB; ++tmp_g)
+                {
+                    for (auto tmp_u = 0; tmp_u < NUM_UE; ++tmp_u)
+                    {
+                        tmpCqiMatrix[tmp_g][tmp_u] = cqiMatrix[tmp_g][tmp_u][time] * connectionMatrix[tmp_g][tmp_u][time];
+                    }
+                }
+                Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+                cout << "\n";
+                Vector2D().swap(tmpCqiMatrix);
+            }
+
             break;
         }
         Vector2D().swap(tmpUeVector);
@@ -343,7 +397,7 @@ void ConnectionMatrix::swapConnections(const Vector3D& cqiMatrix, const uint& ti
             continue;
         }
 
-        vector<vector<int>> coord_cqiMatrix = vector<vector<int>>(); /*gnbIdxToGo, ueIdxToSwitch, cqiChanges*/
+        vector<vector<int>> coord_cqiMatrix = vector<vector<int>>(); /*gnbIdxToGo, ueIdxToSwitch, rewardChanges*/
         for (auto tmp_g = 0; tmp_g < NUM_GNB; ++tmp_g)
         {
             if (tmp_g == g)
@@ -352,9 +406,15 @@ void ConnectionMatrix::swapConnections(const Vector3D& cqiMatrix, const uint& ti
             {
                 if (connectionMatrix[tmp_g][tmp_u][time] == 1)
                 {
+                    /*
                     vector<int> tmpV = vector<int>{tmp_g, tmp_u,
                                                    int(cqiMatrix[tmp_g][u][time] + cqiMatrix[g][tmp_u][time]) -
                                                    int(cqiMatrix[tmp_g][tmp_u][time])};
+                                                   */
+                    vector<int> tmpV = vector<int>{tmp_g, tmp_u,
+                                                   int(CompQuality::reward(cqiMatrix, tmp_g, u, time) +
+                                                   CompQuality::reward(cqiMatrix, g, tmp_u, time) -
+                                                   CompQuality::reward(cqiMatrix, tmp_g, tmp_u, time))};
                     coord_cqiMatrix.push_back(tmpV);
                 }
             }
@@ -370,6 +430,24 @@ void ConnectionMatrix::swapConnections(const Vector3D& cqiMatrix, const uint& ti
         connectionMatrix[res_g][u][time] = 1;
         connectionMatrix[res_g][res_u][time] = 0;
         connectionMatrix[g][res_u][time] = 1;
+        gnbConnectionCounts[g] += 1;
+        ueConnectionCounts[u] += 1;
+
+        if (DEBUG)
+        {
+            cout << g+1 << ", " << u+1 << " swapped\n";
+            Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+            for (auto tmp_g = 0; tmp_g < NUM_GNB; ++tmp_g)
+            {
+                for (auto tmp_u = 0; tmp_u < NUM_UE; ++tmp_u)
+                {
+                    tmpCqiMatrix[tmp_g][tmp_u] = cqiMatrix[tmp_g][tmp_u][time] * connectionMatrix[tmp_g][tmp_u][time];
+                }
+            }
+            Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+            cout << "\n";
+            Vector2D().swap(tmpCqiMatrix);
+        }
 
         vector<vector<int>>().swap(coord_cqiMatrix);
         assert(coord_cqiMatrix.capacity() == 0);
@@ -389,11 +467,18 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
 
     for (auto t = 0; t < NUM_TIME; ++t)
     {
+        /*
+        if (t == 99)
+            DEBUG = 1;
+            */
         coord_cqiTable = getCoordCqiTable(cqiMatrix, t);
         deleteBadConnectionCandidates(cqiMatrix, t, coord_cqiTable);
         connectGoodConnectionCandidates(cqiMatrix, t, coord_cqiTable, connectionMatrix);
         connectMissedConnectionCandidates(cqiMatrix, t, connectionMatrix);
         swapConnections(cqiMatrix, t, connectionMatrix);
+
+        DEBUG = 0;
+
         //DEBUG = 1;
         if (DEBUG)
         {
@@ -429,21 +514,4 @@ bool ConnectionMatrix::isThereConnectionMatrixFile()
     bool res = fd_r.is_open();
     fd_r.close();
     return res;
-}
-Vector3D ConnectionMatrix::generateConnectionMatrix(const Vector3D& cqiMatrix, const uint& algNum)
-{
-    Vector3D connectionMatrix;
-    if (algNum == 0)
-        connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
-        /*
-        else if (algNum == 1)
-            connectionMatrix = connectionMatrixGenerator1(cqiMatrix);
-            */
-    else
-        connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
-    if (isThereConnectionMatrixFile())
-        remove(connectionMatrixFilePath.c_str());
-    Matrix::writeMatrix(connectionMatrixFilePath, connectionMatrix);
-
-    return connectionMatrix;
 }
