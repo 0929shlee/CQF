@@ -10,22 +10,22 @@
 
 using namespace std;
 
-void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum,
-             const uint& compQualityAlgNum);
+void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum);
 
 void testAll();
 
 int main()
 {
-    /*
     Vector3D cqiMatrix = CqiMatrix(0.1, 0, 1).getCqiMatrix();
 
-    runAlgs(cqiMatrix, 0, 1);
+    runAlgs(cqiMatrix, 0);
 
     Vector3D().swap(cqiMatrix);
     assert(cqiMatrix.capacity() == 0);
-     */
+
+    /*
     testAll();
+     */
 
     return 0;
 }
