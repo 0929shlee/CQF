@@ -596,6 +596,8 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator1(const Vector3D& cqiMatrix)
         bruteForce(cqiMatrix, t, connectionMatrix);
     }
     cout << "Brute Force Algorithm Finished!!\n";
+
+    return connectionMatrix;
 }
 bool ConnectionMatrix::isThereConnectionMatrixFile()
 {
