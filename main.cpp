@@ -30,13 +30,13 @@ int main()
     return 0;
 }
 
-void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum, const uint& compQualityAlgNum)
+void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum)
 {
     ConnectionMatrix cm = ConnectionMatrix();
     Vector3D connectionMatrix = cm.generateConnectionMatrix(cqiMatrix, connectionAlgNum);
     assert(cm.isConnectionValid(cqiMatrix, connectionMatrix));
     CompQuality cq = CompQuality();
-    double compQuality = cq.getCompQuality(cqiMatrix, connectionMatrix, compQualityAlgNum);
+    double compQuality = cq.getCompQuality(cqiMatrix, connectionMatrix);
     //DEBUG
     cout << "\n--------------------------------------\n";
     cout << "CoMP Quality: " << compQuality << "\n";
