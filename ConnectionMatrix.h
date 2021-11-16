@@ -31,6 +31,13 @@ private:
     void connectMissedConnectionCandidates(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix);
     void swapConnections(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix);
     Vector3D connectionMatrixGenerator0(const Vector3D& cqiMatrix);
+    void _nextCandidate_recursive(Vector1D& gnbVector, const uint& idx);
+    void _nextCandidate(Vector1D& gnbVector);
+    bool _isLast(const Vector1D& gnbVector);
+    bool _isValidGnbVector(const Vector3D& cqiMatrix, const Vector1D& gnbVector, const uint& time);
+    double _getCompQualityOfGnbVector(const Vector3D& cqiMatrix, const Vector1D& gnbVector, const uint& time);
+    void bruteForce(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix);
+    Vector3D connectionMatrixGenerator1(const Vector3D& cqiMatrix);
     bool isThereConnectionMatrixFile();
 };
 

@@ -10,10 +10,8 @@ Vector3D ConnectionMatrix::generateConnectionMatrix(const Vector3D& cqiMatrix, c
     Vector3D connectionMatrix;
     if (algNum == 0)
         connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
-        /*
-        else if (algNum == 1)
-            connectionMatrix = connectionMatrixGenerator1(cqiMatrix);
-            */
+    else if (algNum == 1)
+        connectionMatrix = connectionMatrixGenerator1(cqiMatrix);
     else
         connectionMatrix = connectionMatrixGenerator0(cqiMatrix);
     if (isThereConnectionMatrixFile())
@@ -462,8 +460,6 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
 { //delete bad cqi connection and connect good cqi connection
     Vector3D connectionMatrix = NEW_VECTOR3D_0;
     Vector2D coord_cqiTable;
-    Vector1D gnbConnectionCounts;
-    Vector1D ueConnectionCounts;
 
     for (auto t = 0; t < NUM_TIME; ++t)
     {
@@ -478,7 +474,6 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
         swapConnections(cqiMatrix, t, connectionMatrix);
 
         DEBUG = 0;
-
         //DEBUG = 1;
         if (DEBUG)
         {
@@ -499,14 +494,108 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator0(const Vector3D& cqiMatrix)
         DEBUG = 0;
 
         Vector2D().swap(coord_cqiTable);
-        Vector1D().swap(gnbConnectionCounts);
-        Vector1D().swap(ueConnectionCounts);
         assert(coord_cqiTable.capacity() == 0);
-        assert(gnbConnectionCounts.capacity() == 0);
-        assert(ueConnectionCounts.capacity() == 0);
     }
 
     return connectionMatrix;
+}
+void ConnectionMatrix::_nextCandidate_recursive(Vector1D& gnbVector, const uint& idx = NUM_UE - 1)
+{
+    if (idx >= gnbVector.size())
+        return;
+
+    if (gnbVector[idx] == NUM_GNB)
+    {
+        gnbVector[idx] = 0;
+        _nextCandidate_recursive(gnbVector, idx - 1);
+    }
+    else
+    {
+        gnbVector[idx] += 1;
+    }
+}
+void ConnectionMatrix::_nextCandidate(Vector1D& gnbVector)
+{
+    _nextCandidate_recursive(gnbVector);
+}
+bool ConnectionMatrix::_isLast(const Vector1D& gnbVector)
+{
+    bool isLast = true;
+    for (auto &v : gnbVector)
+    {
+        if (v != (NUM_GNB - 1))
+        {
+            isLast = false;
+            break;
+        }
+    }
+    return isLast;
+}
+bool ConnectionMatrix::_isValidGnbVector(const Vector3D& cqiMatrix, const Vector1D& gnbVector, const uint& time)
+{
+    Vector1D gnbCounts = Vector1D(NUM_GNB, 0);
+    for (auto u = 0; u < NUM_UE; ++u)
+    {
+        auto g = gnbVector[u];
+        gnbCounts[g] += 1;
+
+        if (cqiMatrix[g][u][time] == 0)
+            return false;
+    }
+
+    return all_of(gnbCounts.begin(), gnbCounts.end(), [](const uint& n) -> bool { return n <= MAX_GNB_CONNECT; });
+}
+double ConnectionMatrix::_getCompQualityOfGnbVector(const Vector3D& cqiMatrix, const Vector1D& gnbVector, const uint& time)
+{
+    double res = 0;
+    for (auto u = 0; u < NUM_UE; ++u)
+    {
+        auto g = gnbVector[u];
+        res += CompQuality::reward(cqiMatrix, g, u, time);
+    }
+    return res;
+}
+void ConnectionMatrix::bruteForce(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix)
+{
+    Vector1D gnbVector = Vector1D(NUM_UE, 0);
+    Vector1D maxGnbVector = Vector1D(NUM_UE, 0);
+    double maxCompQuality = -1;
+    while (true)
+    {
+        if (_isValidGnbVector(cqiMatrix, gnbVector, time))
+        {
+            auto compQuality = _getCompQualityOfGnbVector(cqiMatrix, gnbVector, time);
+            if (maxCompQuality < compQuality)
+            {
+                maxCompQuality = compQuality;
+                for (auto u = 0; u < NUM_UE; ++u)
+                    maxGnbVector[u] = gnbVector[u];
+            }
+        }
+
+        if (_isLast(gnbVector))
+            break;
+        _nextCandidate(gnbVector);
+    }
+
+    for (auto u = 0; u < NUM_UE; ++u)
+    {
+        auto g = maxGnbVector[u];
+        connectionMatrix[g][u][time] = 1;
+    }
+
+    Vector1D().swap(gnbVector);
+    assert(gnbVector.capacity() == 0);
+}
+Vector3D ConnectionMatrix::connectionMatrixGenerator1(const Vector3D& cqiMatrix)
+{
+    Vector3D connectionMatrix = NEW_VECTOR3D_0;
+    for (auto t = 0; t < NUM_TIME; ++t)
+    {
+        cout << "Brute Force Algorithm is running... (" << t << "/" << NUM_TIME << ")\n";
+        bruteForce(cqiMatrix, t, connectionMatrix);
+    }
+    cout << "Brute Force Algorithm Finished!!\n";
 }
 bool ConnectionMatrix::isThereConnectionMatrixFile()
 {

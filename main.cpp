@@ -18,7 +18,8 @@ int main()
 {
     Vector3D cqiMatrix = CqiMatrix(0.1, 0, 1).getCqiMatrix();
 
-    runAlgs(cqiMatrix, 0);
+    //runAlgs(cqiMatrix, 0);
+    runAlgs(cqiMatrix, 1);
 
     Vector3D().swap(cqiMatrix);
     assert(cqiMatrix.capacity() == 0);
@@ -38,12 +39,14 @@ void runAlgs(const Vector3D& cqiMatrix, const uint& connectionAlgNum)
     CompQuality cq = CompQuality();
     double compQuality = cq.getCompQuality(cqiMatrix, connectionMatrix);
     //DEBUG
+    /*
     cout << "\n--------------------------------------\n";
     cout << "CoMP Quality: " << compQuality << "\n";
     cout << "--------------------------------------\n";
+     */
+    //DEBUG
     Vector3D().swap(connectionMatrix);
     assert(connectionMatrix.capacity() == 0);
-    //DEBUG
 }
 
 void testAll()
