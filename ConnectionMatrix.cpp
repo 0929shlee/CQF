@@ -504,7 +504,7 @@ void ConnectionMatrix::_nextCandidate_recursive(Vector1D& gnbVector, const uint&
     if (idx >= gnbVector.size())
         return;
 
-    if (gnbVector[idx] == NUM_GNB)
+    if (gnbVector[idx] == (NUM_GNB-1))
     {
         gnbVector[idx] = 0;
         _nextCandidate_recursive(gnbVector, idx - 1);
