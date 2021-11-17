@@ -38,6 +38,7 @@ private:
     double _getCompQualityOfGnbVector(const Vector3D& cqiMatrix, const Vector1D& gnbVector, const uint& time);
     void bruteForce(const Vector3D& cqiMatrix, const uint& time, Vector3D& connectionMatrix);
     Vector3D connectionMatrixGenerator1(const Vector3D& cqiMatrix);
+    Vector3D connectionMatrixGenerator2(const Vector3D& cqiMatrix);
     bool isThereConnectionMatrixFile();
 };
 

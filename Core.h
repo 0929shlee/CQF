@@ -25,10 +25,10 @@ const string connectionMatrixFilePath = "connection_matrix.txt";
 const string compQualityFilePath = "comp_quality.txt";
 
 const uint MAX_CQI_VAL = 15;
-const uint MAX_GNB_CONNECT = 2/*20*/;
+const uint MAX_GNB_CONNECT = 20/*20*/;
 
 const uint NUM_GNB = 5;
-const uint NUM_UE = 10/*10*/;
+const uint NUM_UE = 100/*10*/;
 const uint NUM_TIME = 100;
 
 #endif //CQF_CORE_H

@@ -18,8 +18,8 @@ int main()
 {
     Vector3D cqiMatrix = CqiMatrix(0.1, 0, 1).getCqiMatrix();
 
-    //runAlgs(cqiMatrix, 0);
-    runAlgs(cqiMatrix, 1);
+    runAlgs(cqiMatrix, 2);
+    //runAlgs(cqiMatrix, 1);
 
     Vector3D().swap(cqiMatrix);
     assert(cqiMatrix.capacity() == 0);

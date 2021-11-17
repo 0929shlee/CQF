@@ -588,7 +588,7 @@ void ConnectionMatrix::bruteForce(const Vector3D& cqiMatrix, const uint& time, V
     assert(gnbVector.capacity() == 0);
 }
 Vector3D ConnectionMatrix::connectionMatrixGenerator1(const Vector3D& cqiMatrix)
-{
+{ //brute force
     Vector3D connectionMatrix = NEW_VECTOR3D_0;
     for (auto t = 0; t < NUM_TIME; ++t)
     {
@@ -596,6 +596,47 @@ Vector3D ConnectionMatrix::connectionMatrixGenerator1(const Vector3D& cqiMatrix)
         bruteForce(cqiMatrix, t, connectionMatrix);
     }
     cout << "Brute Force Algorithm Finished!!\n";
+
+    return connectionMatrix;
+}
+Vector3D ConnectionMatrix::connectionMatrixGenerator2(const Vector3D& cqiMatrix)
+{ //connect good cqi connection
+    Vector3D connectionMatrix = NEW_VECTOR3D_0;
+    Vector2D coord_cqiTable;
+
+    for (auto t = 0; t < NUM_TIME; ++t)
+    {
+        /*
+        if (t == 99)
+            DEBUG = 1;
+            */
+        coord_cqiTable = getCoordCqiTable(cqiMatrix, t);
+        connectGoodConnectionCandidates(cqiMatrix, t, coord_cqiTable, connectionMatrix);
+        swapConnections(cqiMatrix, t, connectionMatrix);
+
+        DEBUG = 0;
+        //DEBUG = 1;
+        if (DEBUG)
+        {
+            Vector2D tmpCqiMatrix = Vector2D(NUM_GNB, Vector1D(NUM_UE, 0));
+            for (auto g = 0; g < NUM_GNB; ++g)
+            {
+                for (auto u = 0; u < NUM_UE; ++u)
+                {
+                    tmpCqiMatrix[g][u] = cqiMatrix[g][u][t] * connectionMatrix[g][u][t];
+                }
+            }
+            Matrix::printMatrixOfTime(cqiMatrix, t);
+            cout << "\n";
+            Matrix::print2DMatrix(tmpCqiMatrix, NUM_GNB, NUM_UE);
+            Vector2D().swap(tmpCqiMatrix);
+            assert(tmpCqiMatrix.capacity() == 0);
+        }
+        DEBUG = 0;
+
+        Vector2D().swap(coord_cqiTable);
+        assert(coord_cqiTable.capacity() == 0);
+    }
 
     return connectionMatrix;
 }
